@@ -1,48 +1,95 @@
-import hashlib
-
-
 class ConsistentHash:
-    def __init__(self):
-        self.ring = {}
-        self.sorted_keys = []
+    def __init__(self, slots=512, virtual_servers=9):
+        self.slots = slots
+        self.virtual_servers = virtual_servers
 
-    def hash_value(self, key):
-        """
-        Generate an integer hash using MD5.
-        """
-        return int(hashlib.md5(key.encode()).hexdigest(), 16)
+        # Circular hash ring
+        self.ring = [None] * slots
 
-    def add_server(self, server):
-        """
-        Add a server to the hash ring.
-        """
-        key = self.hash_value(server)
-        self.ring[key] = server
-        self.sorted_keys.append(key)
-        self.sorted_keys.sort()
+        # Keeps track of where each physical server's
+        # virtual servers are placed.
+        self.server_slots = {}
 
-    def remove_server(self, server):
+    # ----------------------------------------
+    # Request Hash Function
+    # ----------------------------------------
+    def request_hash(self, request_id):
         """
-        Remove a server from the ring.
+        Hashes a request ID into one of the 512 slots.
         """
-        key = self.hash_value(server)
 
-        if key in self.ring:
-            del self.ring[key]
-            self.sorted_keys.remove(key)
+        return (request_id + 2 * (request_id ** 2) + 17) % self.slots
 
-    def get_server(self, request_key):
+    # ----------------------------------------
+    # Virtual Server Hash Function
+    # ----------------------------------------
+    def virtual_hash(self, server_id, replica_id):
         """
-        Find the server responsible for a request.
+        Computes the slot for a virtual server.
         """
-        if not self.sorted_keys:
-            return None
 
-        request_hash = self.hash_value(request_key)
+        return (
+            server_id
+            + replica_id
+            + 2 * (replica_id ** 2)
+            + 25
+        ) % self.slots
 
-        for key in self.sorted_keys:
-            if request_hash <= key:
-                return self.ring[key]
+    # ----------------------------------------
+    # Linear Probing
+    # ----------------------------------------
+    def find_empty_slot(self, slot):
 
-        # Wrap around to the first server
-        return self.ring[self.sorted_keys[0]]
+        while self.ring[slot] is not None:
+
+            slot = (slot + 1) % self.slots
+
+        return slot
+
+    # ----------------------------------------
+    # Add Server
+    # ----------------------------------------
+    def add_server(self, server_name, server_id):
+
+        occupied = []
+
+        for replica in range(self.virtual_servers):
+
+            slot = self.virtual_hash(server_id, replica)
+
+            slot = self.find_empty_slot(slot)
+
+            self.ring[slot] = server_name
+
+            occupied.append(slot)
+
+        self.server_slots[server_name] = occupied
+
+    # ----------------------------------------
+    # Remove Server
+    # ----------------------------------------
+    def remove_server(self, server_name):
+
+        if server_name not in self.server_slots:
+            return
+
+        for slot in self.server_slots[server_name]:
+            self.ring[slot] = None
+
+        del self.server_slots[server_name]
+
+    # ----------------------------------------
+    # Find Server
+    # ----------------------------------------
+    def get_server(self, request_id):
+
+        slot = self.request_hash(request_id)
+
+        for _ in range(self.slots):
+
+            if self.ring[slot] is not None:
+                return self.ring[slot]
+
+            slot = (slot + 1) % self.slots
+
+        return None

@@ -2,50 +2,47 @@ from consistent_hash import ConsistentHash
 
 ring = ConsistentHash()
 
+# Add the three servers
 ring.add_server("Server-1", 1)
 ring.add_server("Server-2", 2)
 ring.add_server("Server-3", 3)
 
-print("===================================")
-print("SERVERS ON THE HASH RING")
-print("===================================")
+print("=" * 60)
+print("SERVERS ON HASH RING")
+print("=" * 60)
 
 for server, slots in ring.server_slots.items():
-    print(server, "->", slots)
+    print(f"{server}: {slots}")
 
 print()
 
-print("===================================")
+print("=" * 60)
 print("REQUEST MAPPING")
-print("===================================")
+print("=" * 60)
 
 requests = [
-    100001,
-    100002,
-    100003,
-    100004,
-    100005,
-    100006,
-    100007,
-    100008,
+    123456,
+    234567,
+    345678,
+    456789,
+    567890,
+    678901,
+    789012,
+    890123
 ]
 
 for request in requests:
-
     server = ring.get_server(request)
-
     print(f"Request {request} ---> {server}")
 
 print()
 
-print("===================================")
-print("REMOVE SERVER-2")
-print("===================================")
+print("=" * 60)
+print("REMOVING SERVER-2")
+print("=" * 60)
 
 ring.remove_server("Server-2")
 
 for request in requests:
-
     server = ring.get_server(request)
-
     print(f"Request {request} ---> {server}")

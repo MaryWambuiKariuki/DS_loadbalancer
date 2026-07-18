@@ -1,70 +1,134 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import requests
-
 from consistent_hash import ConsistentHash
 
 app = Flask(__name__)
 
-# ----------------------------------------
-# Create the Consistent Hash Ring
-# ----------------------------------------
+# -----------------------------------
+# Consistent Hash Ring
+# -----------------------------------
 
 ring = ConsistentHash()
 
-servers = {
-    "Server-1": "http://localhost:5000",
-    "Server-2": "http://localhost:5001",
-    "Server-3": "http://localhost:5002"
-}
+servers = {}
 
-for server in servers:
-    ring.add_server(server)
+# Default replicas
+for i in range(1, 4):
 
-# ----------------------------------------
-# Home Endpoint
-# ----------------------------------------
+    name = f"Server-{i}"
 
-@app.route("/")
-def index():
+    servers[name] = f"http://server{i}:5000"
+
+    ring.add_server(name, i)
+
+# -----------------------------------
+# GET /rep
+# -----------------------------------
+
+@app.route("/rep", methods=["GET"])
+def get_replicas():
+
     return jsonify({
-        "message": "Distributed Systems Load Balancer"
+
+        "N": len(servers),
+
+        "replicas": list(servers.keys())
+
     })
 
+# -----------------------------------
+# POST /add
+# -----------------------------------
 
-# ----------------------------------------
-# Forward Requests
-# ----------------------------------------
+@app.route("/add", methods=["POST"])
+def add_server():
 
-@app.route("/home/<request_id>")
-def home(request_id):
+    data = request.get_json()
+
+    hostname = data["hostname"]
+
+    server_id = len(servers) + 1
+
+    servers[hostname] = f"http://{hostname}:5000"
+
+    ring.add_server(hostname, server_id)
+
+    return jsonify({
+
+        "message": f"{hostname} added",
+
+        "N": len(servers)
+
+    }), 201
+
+# -----------------------------------
+# DELETE /rm
+# -----------------------------------
+
+@app.route("/rm", methods=["DELETE"])
+def remove_server():
+
+    data = request.get_json()
+
+    hostname = data["hostname"]
+
+    if hostname not in servers:
+
+        return jsonify({
+
+            "error": "Server not found"
+
+        }), 404
+
+    ring.remove_server(hostname)
+
+    del servers[hostname]
+
+    return jsonify({
+
+        "message": f"{hostname} removed",
+
+        "N": len(servers)
+
+    })
+
+# -----------------------------------
+# Route Client Requests
+# -----------------------------------
+
+@app.route("/<path:path>", methods=["GET"])
+def route_request(path):
+
+    request_id = abs(hash(path))
 
     server = ring.get_server(request_id)
 
-    try:
-        response = requests.get(
-            f"{servers[server]}/home"
-        )
+    url = f"{servers[server]}/{path}"
 
-        return response.json()
+    try:
+
+        response = requests.get(url)
+
+        return jsonify(response.json())
 
     except Exception:
 
         return jsonify({
-            "error": f"{server} is unavailable"
+
+            "error": f"{server} unavailable"
+
         }), 500
 
-
-# ----------------------------------------
-# View Active Replicas
-# ----------------------------------------
-
-@app.route("/rep")
-def replicas():
-
-    return jsonify({
-        "replicas": list(servers.keys())
-    })
-
+# -----------------------------------
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=6000)
+
+    app.run(
+
+        host="0.0.0.0",
+
+        port=5000,
+
+        debug=True
+
+    )

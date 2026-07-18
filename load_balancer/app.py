@@ -12,6 +12,8 @@ from consistent_hash import ConsistentHash
 
 app = Flask(__name__)
 
+request_count = 0
+
 # -------------------------------------------------------
 # Docker Client
 # -------------------------------------------------------

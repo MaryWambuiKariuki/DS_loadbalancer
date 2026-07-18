@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 import os
 
 app = Flask(__name__)
+request_count = 0
 
 # Read environment variables
 SERVER_ID = os.getenv("SERVER_ID", "Server-1")
@@ -18,11 +19,24 @@ def index():
 
 @app.route("/home")
 def home():
+
+    global request_count
+
+    request_count += 1
+
     return jsonify({
         "message": "Welcome to the Distributed Systems Server",
         "server": SERVER_ID
+        "requests": request_count
     })
 
+@app.route("/stats")
+def stats():
+
+    return jsonify({
+        "server": SERVER_ID,
+        "requests": request_count
+    })
 
 @app.route("/heartbeat")
 def heartbeat():

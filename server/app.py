@@ -16,7 +16,6 @@ def index():
         "server": SERVER_ID
     })
 
-
 @app.route("/home")
 def home():
 
@@ -26,7 +25,7 @@ def home():
 
     return jsonify({
         "message": "Welcome to the Distributed Systems Server",
-        "server": SERVER_ID
+        "server": SERVER_ID, 
         "requests": request_count
     })
 

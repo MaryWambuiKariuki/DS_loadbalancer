@@ -12,8 +12,6 @@ from consistent_hash import ConsistentHash
 
 app = Flask(__name__)
 
-request_count = 0
-
 # -------------------------------------------------------
 # Docker Client
 # -------------------------------------------------------
@@ -66,7 +64,9 @@ def create_server(server_name, server_id):
         )
 
         servers[server_name] = {
-            "id": server_id
+            "id": server_id,
+            "host": server_name,
+            "port": 5000
         }
 
         ring.add_server(server_name, server_id)
@@ -123,7 +123,9 @@ def discover_servers():
             server_id = int(name.replace("server", ""))
 
             servers[name] = {
-                "id": server_id
+                "id": server_id,
+                "host": name,
+                "port": 5000
             }
 
             ring.add_server(
@@ -131,8 +133,7 @@ def discover_servers():
                 server_id
             )
 
-            print(f"Discovered {name}")
-        # -------------------------------------------------------
+            print(f"Discovered {name}")        # -------------------------------------------------------
 # GET /rep
 # Returns all active replicas
 # -------------------------------------------------------
@@ -183,9 +184,9 @@ def remove_server():
     
     # Remove the server with the highest ID
     server_name = sorted(
-        server.keys(),
+        servers.keys(),
         key=lambda x: int(x.replace("server", ""))
-    )[-1]
+        )[-1]
     
     delete_server(server_name)
     return jsonify({
@@ -203,39 +204,41 @@ def remove_server():
 def route_request(path):
 
     if len(servers) == 0:
-
         return jsonify({
             "error": "No servers available"
         }), 503
 
-    # Generate a request ID
+    # Generate request ID
     request_id = abs(hash(path))
 
-    server = ring.get_server(request_id)
+    # Get server from consistent hash ring
+    server_name = ring.get_server(request_id)
 
-    if server is None:
-
+    if server_name is None:
         return jsonify({
             "error": "Hash ring is empty"
         }), 503
 
-    server_name = server["name"]
+    server = servers.get(server_name)
 
-    url = f"http://{port}/{path}"
+    if server is None:
+        return jsonify({
+            "error": "Server not found"
+        }), 503
+
+    url = f"http://{server['host']}:{server['port']}/{path}"
 
     try:
-
         response = requests.get(url, timeout=2)
 
         return jsonify(response.json())
 
-    except Exception:
-
+    except Exception as e:
         return jsonify({
-            "error": f"{server_name} is unavailable"
+            "error": str(e)
         }), 500
 
-        # -------------------------------------------------------
+# -------------------------------------------------------
 # Heartbeat Monitor
 # -------------------------------------------------------
 
@@ -274,7 +277,7 @@ def heartbeat_monitor():
             recover_server(server_name)
 
 
-            # -------------------------------------------------------
+# -------------------------------------------------------
 # Recover Failed Server
 # -------------------------------------------------------
 
@@ -286,8 +289,6 @@ def recover_server(server_name):
 
     info = servers[server_name]
 
-    port = info["port"]
-
     server_id = info["id"]
 
     print(f"Recovering {server_name}...")
@@ -295,8 +296,7 @@ def recover_server(server_name):
     try:
 
         delete_server(server_name)
-
-    except Exception:
+        except Exception:
         pass
 
     time.sleep(2)
@@ -308,7 +308,7 @@ def recover_server(server_name):
 
     print(f"{server_name} recovered.")
 
-    # -------------------------------------------------------
+# -------------------------------------------------------
 # Main
 # -------------------------------------------------------
 

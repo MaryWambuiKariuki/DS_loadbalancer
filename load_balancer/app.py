@@ -39,9 +39,9 @@ BASE_PORT = 5001
 
 INITIAL_SERVERS = 3
 
-SERVER_IMAGE = "ds-server"
+SERVER_IMAGE = "distributed_systems_project-server"
 
-NETWORK_NAME = "distributed_systems_project_ds_network"
+NETWORK_NAME = "ds_network"
 
 
 # -------------------------------------------------------
@@ -133,7 +133,9 @@ def discover_servers():
                 server_id
             )
 
-            print(f"Discovered {name}")        # -------------------------------------------------------
+            print(f"Discovered {name}")   
+
+ # -------------------------------------------------------
 # GET /rep
 # Returns all active replicas
 # -------------------------------------------------------
@@ -234,6 +236,8 @@ def route_request(path):
         return jsonify(response.json())
 
     except Exception as e:
+        print(e)
+
         return jsonify({
             "error": str(e)
         }), 500
@@ -254,7 +258,6 @@ def heartbeat_monitor():
 
             try:
 
-                container_name = server_name.lower().replace("-", "")
                 url = f"http://{server_name}:5000/heartbeat"
 
                 response = requests.get(
@@ -324,4 +327,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=5000,
         debug=False
+        threaded=True
     )

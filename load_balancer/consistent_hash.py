@@ -53,20 +53,17 @@ class ConsistentHash:
     # Add Server
     # -----------------------------------------
     def add_server(self, server_name, server_id):
-
+        
         occupied = []
-
+        
         for replica in range(self.virtual_servers):
-
+            
             slot = self.virtual_hash(server_id, replica)
 
             slot = self._find_empty_slot(slot)
 
-            self.ring[slot] = {
-                "name": server_name,
-                "id": server_id
-            }
-
+            self.ring[slot] = server_name
+            
             occupied.append(slot)
 
         self.server_slots[server_name] = occupied
@@ -113,6 +110,6 @@ class ConsistentHash:
 
             if server is not None:
 
-                print(f"Slot {index:3} -> {server['name']}")
+                print(f"Slot {index:3} -> {server}")
 
         print("=" * 60)

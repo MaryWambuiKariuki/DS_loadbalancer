@@ -3,12 +3,20 @@ import os
 
 app = Flask(__name__)
 
-# Get the server ID from an environment variable.
-# If none is provided, use "Server-1" by default.
+# Read environment variables
 SERVER_ID = os.getenv("SERVER_ID", "Server-1")
+PORT = int(os.getenv("PORT", 5000))
 
 
-@app.route("/home", methods=["GET"])
+@app.route("/")
+def index():
+    return jsonify({
+        "message": "Distributed Systems Server",
+        "server": SERVER_ID
+    })
+
+
+@app.route("/home")
 def home():
     return jsonify({
         "message": "Welcome to the Distributed Systems Server",
@@ -16,13 +24,17 @@ def home():
     })
 
 
-@app.route("/heartbeat", methods=["GET"])
+@app.route("/heartbeat")
 def heartbeat():
     return jsonify({
         "status": "healthy",
         "server": SERVER_ID
-    }), 200
+    })
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(
+        host="0.0.0.0",
+        port=PORT,
+        debug=False
+    )

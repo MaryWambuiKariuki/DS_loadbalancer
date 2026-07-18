@@ -1,8 +1,10 @@
+import docker
 from flask import Flask, jsonify, request
 import requests
 from consistent_hash import ConsistentHash
 
 app = Flask(__name__)
+client = docker.from_env()
 
 # -----------------------------------
 # Consistent Hash Ring

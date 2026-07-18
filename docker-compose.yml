@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+
+  load_balancer:
+    build: ./load_balancer
+    container_name: load_balancer
+
+    ports:
+      - "5000:5000"
+
+    depends_on:
+      - server1
+      - server2
+      - server3
+
+    networks:
+      - ds_network
+
+  server1:
+
+    build: ./server
+
+    container_name: server1
+
+    environment:
+      SERVER_ID: Server-1
+      PORT: 5000
+
+    networks:
+      - ds_network
+
+  server2:
+
+    build: ./server
+
+    container_name: server2
+
+    environment:
+      SERVER_ID: Server-2
+      PORT: 5000
+
+    networks:
+      - ds_network
+
+  server3:
+
+    build: ./server
+
+    container_name: server3
+
+    environment:
+      SERVER_ID: Server-3
+      PORT: 5000
+
+    networks:
+      - ds_network
+
+networks:
+
+  ds_network:

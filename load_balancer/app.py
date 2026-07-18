@@ -284,26 +284,23 @@ def heartbeat_monitor():
 def recover_server(server_name):
 
     if server_name not in servers:
-
         return
 
     info = servers[server_name]
-
     server_id = info["id"]
 
     print(f"Recovering {server_name}...")
 
     try:
-
         delete_server(server_name)
-        except Exception:
+    except Exception:
         pass
 
     time.sleep(2)
 
     create_server(
         server_name,
-        server_id,
+        server_id
     )
 
     print(f"{server_name} recovered.")

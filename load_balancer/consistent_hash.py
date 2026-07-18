@@ -110,6 +110,6 @@ class ConsistentHash:
 
             if server is not None:
 
-                print(f"Slot {index:3} -> {server}")
+                print(f"Slot {index:3} -> {server['name']}")
 
         print("=" * 60)

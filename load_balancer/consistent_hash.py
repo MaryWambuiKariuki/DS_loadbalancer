@@ -104,12 +104,11 @@ class ConsistentHash:
     # -----------------------------------------
     def display_ring(self):
 
-        print("=" * 60)
+    print("=" * 60)
 
-        for index, server in enumerate(self.ring):
+    for index, server in enumerate(self.ring):
 
-            if server is not None:
+        if server is not None:
+            print(f"Slot {index:3} -> {server}")
 
-                print(f"Slot {index:3} -> {server['name']}")
-
-        print("=" * 60)
+    print("=" * 60)

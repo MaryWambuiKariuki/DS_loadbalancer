@@ -48,7 +48,7 @@ NETWORK_NAME = "distributed_systems_project_ds_network"
 # Create Docker Container
 # -------------------------------------------------------
 
-def create_server(server_name, server_id, port):
+def create_server(server_name, server_id):
 
     try:
 
@@ -56,31 +56,24 @@ def create_server(server_name, server_id, port):
             image=SERVER_IMAGE,
             name=server_name,
             detach=True,
-
+            network=NETWORK_NAME,
             environment={
                 "SERVER_ID": server_name,
                 "PORT": 5000
             },
-
-            ports={
-                "5000/tcp": port
-            },
-
-            network=NETWORK_NAME
         )
 
         servers[server_name] = {
-            "id": server_id,
-            "port": port
+            "id": server_id
         }
 
         ring.add_server(server_name, server_id)
 
-        print(f"{server_name} started on localhost:{port}")
+        print(f"{server_name} created successfully")
 
     except Exception as e:
 
-        print(e)
+        print(f"Error creating {server_name}: {e}")
 
 
 # -------------------------------------------------------
@@ -99,33 +92,44 @@ def delete_server(server_name):
 
         ring.remove_server(server_name)
 
-        del servers[server_name]
+        servers.pop(server_name, None)
 
-        print(f"{server_name} removed")
+        print(f"{server_name} removed successfully")
 
     except Exception as e:
 
-        print(e)
+        print(f"Error removing {server_name}: {e}")
 
 
 # -------------------------------------------------------
 # Start Initial Replicas
 # -------------------------------------------------------
 
-def initialize_servers():
+def discover_servers():
+    """
+    Discover all running backend containers created by Docker Compose.
+    """
 
-    for i in range(1, INITIAL_SERVERS + 1):
+    containers = client.containers.list()
 
-        name = f"Server-{i}"
+    for container in containers:
 
-        port = BASE_PORT + i - 1
+        name = container.name
 
-        create_server(
-            name,
-            i,
-            port
-        )
+        if name.startswith("server"):
 
+            server_id = int(name.replace("server", ""))
+
+            servers[name] = {
+                "id": server_id
+            }
+
+            ring.add_server(
+                name,
+                server_id
+            )
+
+            print(f"Discovered {name}")
         # -------------------------------------------------------
 # GET /rep
 # Returns all active replicas
@@ -147,37 +151,19 @@ def get_replicas():
 
 @app.route("/add", methods=["POST"])
 def add_server():
-
-    data = request.get_json()
-
-    if not data or "hostname" not in data:
-
-        return jsonify({
-            "error": "hostname is required"
-        }), 400
-
-    hostname = data["hostname"]
-
-    if hostname in servers:
-
-        return jsonify({
-            "error": "Server already exists"
-        }), 400
-
-    server_id = len(servers) + 1
-
-    port = BASE_PORT + len(servers)
-
-    create_server(
-        hostname,
-        server_id,
-        port
-    )
-
+    server_id = 1
+    
+    while f"server{server_id}" in servers:
+        server_id += 1
+    
+    server_name = f"server{server_id}"
+    create_server(server_name, server_id)
+    
     return jsonify({
-        "message": f"{hostname} added successfully",
-        "total_servers": len(servers)
-    }), 201
+     "message": f"{server_name} added successfully",
+     "total_servers": len(servers),
+     "replicas": list(servers.keys())
+}), 201
 
 
 # -------------------------------------------------------
@@ -188,27 +174,22 @@ def add_server():
 @app.route("/rm", methods=["DELETE"])
 def remove_server():
 
-    data = request.get_json()
-
-    if not data or "hostname" not in data:
-
-        return jsonify({
-            "error": "hostname is required"
+    if len(servers) <= 1:
+        return jsonify( {
+            "error": "Cannot remove the last server."
         }), 400
-
-    hostname = data["hostname"]
-
-    if hostname not in servers:
-
-        return jsonify({
-            "error": "Server does not exist"
-        }), 404
-
-    delete_server(hostname)
-
+    
+    # Remove the server with the highest ID
+    server_name = sorted(
+        server.keys(),
+        key=lambda x: int(x.replace("server", ""))
+    )[-1]
+    
+    delete_server(server_name)
     return jsonify({
-        "message": f"{hostname} removed successfully",
-        "total_servers": len(servers)
+        "message": f"{server_name} removed successfully",
+        "total_servers": len(servers),
+        "replicas": list(servers.keys())
     })
 
 # -------------------------------------------------------
@@ -238,10 +219,8 @@ def route_request(path):
 
     server_name = server["name"]
 
-    port = servers[server_name]["port"]
+    url = f"http://{port}/{path}"
 
-    url = f"http://{server_name.lower().replace('-', '')}:5000/{path}"
-    
     try:
 
         response = requests.get(url, timeout=2)
@@ -270,7 +249,8 @@ def heartbeat_monitor():
 
             try:
 
-                url = f"http://localhost:{info['port']}/heartbeat"
+                container_name = server_name.lower().replace("-", "")
+                url = f"http://{server_name}:5000/heartbeat"
 
                 response = requests.get(
                     url,
@@ -322,7 +302,6 @@ def recover_server(server_name):
     create_server(
         server_name,
         server_id,
-        port
     )
 
     print(f"{server_name} recovered.")
@@ -333,7 +312,7 @@ def recover_server(server_name):
 
 if __name__ == "__main__":
 
-    initialize_servers()
+    discover_servers()
 
     heartbeat_thread = threading.Thread(
         target=heartbeat_monitor,

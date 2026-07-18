@@ -3,11 +3,16 @@ version: "3.9"
 services:
 
   load_balancer:
-    build: ./load_balancer
+    build:
+      context: ./load_balancer
+
     container_name: load_balancer
 
     ports:
       - "5000:5000"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
     depends_on:
       - server1
@@ -19,7 +24,8 @@ services:
 
   server1:
 
-    build: ./server
+    build:
+      context: ./server
 
     container_name: server1
 
@@ -32,7 +38,8 @@ services:
 
   server2:
 
-    build: ./server
+    build:
+      context: ./server
 
     container_name: server2
 
@@ -45,7 +52,8 @@ services:
 
   server3:
 
-    build: ./server
+    build:
+      context: ./server
 
     container_name: server3
 
@@ -57,5 +65,5 @@ services:
       - ds_network
 
 networks:
-
   ds_network:
+    driver: bridge

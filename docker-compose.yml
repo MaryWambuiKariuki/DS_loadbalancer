@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
 
   load_balancer:
@@ -66,4 +64,5 @@ services:
 
 networks:
   ds_network:
+    name: ds_network
     driver: bridge

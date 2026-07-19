@@ -70,3 +70,6 @@ The experiment confirms that the load balancer scales effectively with an increa
 
 <img width="800" height="500" alt="image" src="https://github.com/user-attachments/assets/daaa4740-50e3-4b1f-adac-6daec7f45eb1" />
 
+A-3 Server Failure Recovery
+
+The heartbeat monitor continuously checks the health of all backend replicas every five seconds. When a backend server was manually stopped using Docker, the heartbeat detected that the server had become unreachable. The load balancer automatically removed the failed server from the consistent hash ring and created a replacement container with the same server identifier. During recovery, client requests continued to be processed by the remaining replicas, demonstrating fault tolerance and high availability. The automatic recovery mechanism restored the original number of replicas within a few seconds without requiring manual intervention.

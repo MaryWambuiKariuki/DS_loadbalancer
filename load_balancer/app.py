@@ -210,14 +210,11 @@ def route_request(path):
             "error": "No servers available"
         }), 503
 
-    # Generate request ID
-    request_id = request.args.get("id", path)
-    request_id = abs(hash(str(request_id)))
+    # Get the request key from the URL
+    request_key = request.args.get("id", path)
 
-    # Get server from consistent hash ring
-    server_name = ring.get_server(request_id)
-    print("Selected:", server_name)
-    print("Servers:", servers)
+    # Find server
+    server_name = ring.get_server(request_key)
 
     if server_name is None:
         return jsonify({
@@ -235,16 +232,12 @@ def route_request(path):
 
     try:
         response = requests.get(url, timeout=2)
-
         return jsonify(response.json())
 
     except Exception as e:
-        print(e)
-
         return jsonify({
             "error": str(e)
         }), 500
-
 # -------------------------------------------------------
 # Heartbeat Monitor
 # -------------------------------------------------------

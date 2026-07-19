@@ -1,3 +1,6 @@
+import hashlib
+
+
 class ConsistentHash:
     """
     Consistent Hash Ring
@@ -18,25 +21,26 @@ class ConsistentHash:
         self.server_slots = {}
 
     # -----------------------------------------
-    # Request Hash Function
-    # H(i) = i² + 2i + 17
+    # Request Hash Function (Deterministic)
     # -----------------------------------------
-    def request_hash(self, request_id):
+    def request_hash(self, request_key):
 
-        return ((request_id ** 2) + (2 * request_id) + 17) % self.slots
+        h = hashlib.sha256(
+            str(request_key).encode()
+        ).hexdigest()
+
+        return int(h, 16) % self.slots
 
     # -----------------------------------------
     # Virtual Server Hash Function
-    # Φ(i,j) = i² + j² + 2j + 25
     # -----------------------------------------
     def virtual_hash(self, server_id, replica):
 
-        return (
-            (server_id ** 2)
-            + (replica ** 2)
-            + (2 * replica)
-            + 25
-        ) % self.slots
+        h = hashlib.sha256(
+            f"{server_id}-{replica}".encode()
+        ).hexdigest()
+
+        return int(h, 16) % self.slots
 
     # -----------------------------------------
     # Linear Probing
@@ -44,7 +48,6 @@ class ConsistentHash:
     def _find_empty_slot(self, slot):
 
         while self.ring[slot] is not None:
-
             slot = (slot + 1) % self.slots
 
         return slot
@@ -53,17 +56,15 @@ class ConsistentHash:
     # Add Server
     # -----------------------------------------
     def add_server(self, server_name, server_id):
-        
-        occupied = []
-        
-        for replica in range(self.virtual_servers):
-            
-            slot = self.virtual_hash(server_id, replica)
 
+        occupied = []
+
+        for replica in range(self.virtual_servers):
+
+            slot = self.virtual_hash(server_id, replica)
             slot = self._find_empty_slot(slot)
 
             self.ring[slot] = server_name
-            
             occupied.append(slot)
 
         self.server_slots[server_name] = occupied
@@ -77,7 +78,6 @@ class ConsistentHash:
             return
 
         for slot in self.server_slots[server_name]:
-
             self.ring[slot] = None
 
         del self.server_slots[server_name]
@@ -85,14 +85,13 @@ class ConsistentHash:
     # -----------------------------------------
     # Route Request
     # -----------------------------------------
-    def get_server(self, request_id):
+    def get_server(self, request_key):
 
-        slot = self.request_hash(request_id)
+        slot = self.request_hash(request_key)
 
         for _ in range(self.slots):
 
             if self.ring[slot] is not None:
-
                 return self.ring[slot]
 
             slot = (slot + 1) % self.slots
@@ -103,11 +102,12 @@ class ConsistentHash:
     # Print Ring
     # -----------------------------------------
     def display_ring(self):
-        
+
         print("=" * 60)
-        
+
         for index, server in enumerate(self.ring):
+
             if server is not None:
                 print(f"Slot {index:3} -> {server}")
 
-    print("=" * 60)
+        print("=" * 60)

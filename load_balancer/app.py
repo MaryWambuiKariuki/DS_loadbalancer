@@ -252,30 +252,26 @@ def heartbeat_monitor():
         failed_servers = []
 
         for server_name, info in list(servers.items()):
-
+            
             try:
-
                 url = f"http://{server_name}:5000/heartbeat"
-
-                response = requests.get(
-                    url,
-                    timeout=2
-                )
-
+                
+                response = requests.get(url, timeout=2)
+                
                 if response.status_code != 200:
-
                     failed_servers.append(server_name)
-
-            except Exception:
-
+            
+            except Exception as e:
+                print(f"Heartbeat failed for {server_name}: {e}")
                 failed_servers.append(server_name)
 
+        print("Failed servers:", failed_servers)
+
         for server_name in failed_servers:
-
+            
             print(f"{server_name} has failed.")
-
+            
             recover_server(server_name)
-
 
 # -------------------------------------------------------
 # Recover Failed Server

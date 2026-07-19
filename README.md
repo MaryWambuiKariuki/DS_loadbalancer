@@ -73,3 +73,34 @@ The experiment confirms that the load balancer scales effectively with an increa
 A-3 Server Failure Recovery
 
 The heartbeat monitor continuously checks the health of all backend replicas every five seconds. When a backend server was manually stopped using Docker, the heartbeat detected that the server had become unreachable. The load balancer automatically removed the failed server from the consistent hash ring and created a replacement container with the same server identifier. During recovery, client requests continued to be processed by the remaining replicas, demonstrating fault tolerance and high availability. The automatic recovery mechanism restored the original number of replicas within a few seconds without requiring manual intervention.
+
+A-4 Modified Hash Functions
+
+Hash Function Used: 
+The original implementation relied on Python's built-in hash() function to map incoming requests to positions on the consistent hashing ring. This function was replaced with the SHA-256 cryptographic hash function to provide deterministic and more uniformly distributed hash values.
+
+Observations from A-1: 
+Before modifying the hash function, the request distribution was highly skewed. Most requests were directed to a single server, causing load imbalance. After replacing the hash function with SHA-256, request mapping became deterministic and more evenly distributed across the hash ring. Although the distribution was still influenced by the placement of virtual nodes on the consistent hashing ring, the results were more stable and reproducible than the original implementation.
+
+Observations from A-2: 
+The scalability experiment was repeated using the modified hash function.
+
+The average load per server continued to decrease as additional replicas were introduced:
+
+2	4852.5
+
+3	3332.33
+
+4	1925.75
+
+5	Lower than 4-server case
+
+6	Lower than 5-server case
+
+Conclusion: 
+Replacing the original hash function with SHA-256 improved the predictability and stability of request mapping while maintaining compatibility with the consistent hashing algorithm. The modified implementation produced more reliable request placement and better load distribution across server replicas, especially during repeated experiments.
+
+<img width="800" height="500" alt="image" src="https://github.com/user-attachments/assets/463f1429-9a7e-4a12-b1fd-34364d8bee71" />
+
+<img width="800" height="500" alt="image" src="https://github.com/user-attachments/assets/896cf3a2-e9ad-48fd-9085-46360edfea71" />
+

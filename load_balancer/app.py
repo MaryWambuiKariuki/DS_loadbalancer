@@ -211,10 +211,13 @@ def route_request(path):
         }), 503
 
     # Generate request ID
-    request_id = abs(hash(path))
+    request_id = request.args.get("id", path)
+    request_id = abs(hash(str(request_id)))
 
     # Get server from consistent hash ring
     server_name = ring.get_server(request_id)
+    print("Selected:", server_name)
+    print("Servers:", servers)
 
     if server_name is None:
         return jsonify({

@@ -3,39 +3,49 @@ import aiohttp
 import json
 from collections import Counter
 
-URL = "http://localhost:5000/home"
-
-counter = Counter()
+BASE_URL = "http://localhost:5000/home"
 
 TOTAL_REQUESTS = 10000
 
+counter = Counter()
 
-async def fetch(session):
+
+async def fetch(session, request_id):
     try:
-        async with session.get(URL) as response:
+        async with session.get(
+            URL,
+            params={"id": request_id}
+        ) as response:
+
             data = await response.json()
 
             if "server" in data:
                 counter[data["server"]] += 1
 
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Request {request_id} failed: {e}")
 
 
 async def main():
+
     async with aiohttp.ClientSession() as session:
 
         tasks = [
-            fetch(session)
-            for _ in range(TOTAL_REQUESTS)
+            fetch(session, i)
+            for i in range(TOTAL_REQUESTS)
         ]
 
         await asyncio.gather(*tasks)
 
-    print(counter)
+    print("\nRequests handled by each server:")
+    for server, count in sorted(counter.items()):
+        print(f"{server}: {count}")
 
     with open("results.json", "w") as f:
-        json.dump(counter, f, indent=4)
+        json.dump(dict(counter), f, indent=4)
+
+    print("\nResults saved to results.json")
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

@@ -3,6 +3,8 @@ import aiohttp
 import json
 from collections import Counter
 
+from yarl import URL
+
 BASE_URL = "http://localhost:5000/home"
 
 TOTAL_REQUESTS = 10000
@@ -13,7 +15,7 @@ counter = Counter()
 async def fetch(session, request_id):
     try:
         async with session.get(
-            URL,
+            BASE_URL,
             params={"id": request_id}
         ) as response:
 

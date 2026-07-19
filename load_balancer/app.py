@@ -213,9 +213,10 @@ def route_request(path):
 
     # Get the request key from the URL
     request_key = request.args.get("id", path)
+    request_id = ring.request_hash(request_key)
 
     # Find server
-    server_name = ring.get_server(request_key)
+    server_name = ring.get_server(request_id)
 
     if server_name is None:
         return jsonify({

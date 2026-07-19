@@ -52,15 +52,15 @@ def create_server(server_name, server_id):
 
     try:
 
-        client.containers.run(
-            image=SERVER_IMAGE,
+        container = client.containers.run(
+            image="distributed_systems_project-server1",
             name=server_name,
             detach=True,
             network=NETWORK_NAME,
             environment={
                 "SERVER_ID": server_name,
                 "PORT": 5000
-            },
+            }
         )
 
         servers[server_name] = {
@@ -75,8 +75,9 @@ def create_server(server_name, server_id):
 
     except Exception as e:
 
-        print(f"Error creating {server_name}: {e}")
-
+        print("ERROR:")
+        print(type(e))
+        print(e)
 
 # -------------------------------------------------------
 # Delete Docker Container
